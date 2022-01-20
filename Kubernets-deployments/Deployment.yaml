@@ -102,7 +102,7 @@ spec:
                 name: demo
             - secretRef:
                 name: demo
-          image: 548244693820.dkr.ecr.us-west-2-imagename # {"$imagepolicy": "flux-system:msa-prod-policy"}
+          image: 548244693820.dkr.ecr.us-west-2-imagename # {"$imagepolicy": "flux-system:demo-prod-policy"}
           imagePullPolicy: IfNotPresent
           name: demo
           livenessProbe:

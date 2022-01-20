@@ -1,0 +1,10 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: demo-prod
+  namespace: flux-system
+spec:
+  secretRef:
+    name: ecr-credentials
+  image: 548222.dkr.ecr.us-west-2.amazonaws.com/demo
+  interval: 1m0s

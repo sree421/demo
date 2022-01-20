@@ -1,0 +1,63 @@
+name: Building and pushing a docker image to Amazon ECR
+on:
+  push:
+    paths:
+    - src/**
+    branches:         
+    - release  
+env:
+  AWS_DEFAULT_REGION: us-west-2
+  AWS_DEFAULT_OUTPUT: json
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  CONTAINER_IMAGE: ${{ github.run_number }}
+
+jobs:
+  build-and-push:
+    name: Building and pushing image to AWS ECR
+    runs-on: ubuntu-latest
+    steps:
+    - name: Send message to ms teams Triggering deployment
+      uses: dhollerbach/github-action-send-message-to-ms-teams@1.0.10
+      with:
+        webhook: 'https://netorgft747422.webhook.office.com/webhookb2/7d75d0'
+        message: 'SonarQube Code Quality scan Started for prod'
+
+    - uses: actions/checkout@master
+    - name: SonarQube Scan
+      uses: kitabisa/sonarqube-action@master
+      with:
+        host: ${{ secrets.SONARQUBE_HOST }}
+        login: ${{ secrets.SONARQUBE_TOKEN }}
+
+    - name: Runner workspace path
+      shell: bash
+      run: |
+        sudo chown -R $USER:$USER /home/runner/work/*
+    - name: Send message to ms teams Triggering deployment
+      uses: dhollerbach/github-action-send-message-to-ms-teams@1.0.10
+      with:
+        webhook: 'https://netorgft7474'
+        message: 'Latest Code Deployment of Prod Started Please wait'
+
+    - name: Checkout
+      uses: actions/checkout@master
+
+    - name: Setup ECR
+      run: |
+        echo $( aws ecr get-authorization-token --region us-west-2 --output text --query 'authorizationData[].authorizationToken' | base64 -d | cut -d: -f2) | docker login -u AWS https://acntid.dkr.ecr.us-west-2.amazonaws.com --password-stdin
+    - name: Build and tag the image
+      run: |
+        docker build \
+          -t $CONTAINER_IMAGE \
+          -t acnt-id.dkr.ecr.us-west-2.amazonaws.com/demo-prod:$CONTAINER_IMAGE ./src
+    - name: Push
+      if: github.ref == 'refs/heads/release'
+      run: |
+              docker push acntid.dkr.ecr.us-west-2.amazonaws.com/demo-prod:$CONTAINER_IMAGE
+    - name: Send message to ms teams
+      uses: dhollerbach/github-action-send-message-to-ms-teams@1.0.10
+      with:
+        webhook: 'https://netorgft747422.webhook.office.com/webhook'
+        message: 'Latest Code Deployment of Prod Done'

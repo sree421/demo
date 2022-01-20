@@ -1,0 +1,24 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageUpdateAutomation
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  sourceRef: # moved from `.spec.checkout`
+    kind: GitRepository
+    name: flux-system
+  interval: 1m
+  update:
+    strategy: Setters
+    path: ./demo
+  git:
+    checkout: # moved under `git`, loses `gitRepositoryRef`
+      ref:
+        branch: main # moved into `ref` struct
+    commit: # moved under `git`
+      author:
+        name: fluxbot  # moved from `authorName`
+        email: fluxbot@example.com # moved from `authorEmail`
+      messageTemplate: '{{range .Updated.Images}}{{println .}}{{end}}'
+    push: # moved under `git`
+      branch: main

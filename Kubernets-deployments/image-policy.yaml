@@ -1,0 +1,14 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: demo-prod-policy
+  namespace: flux-system
+spec:
+  imageRepositoryRef:
+    name: demo-prod
+  filterTags:
+    pattern: '^(?P<version>[0-9]+)'
+    extract: '$version'
+  policy:
+    numerical:
+      order: asc
