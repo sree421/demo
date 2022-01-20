@@ -21,11 +21,6 @@ image:
   tag: "latest"
   pullPolicy: IfNotPresent
 
-command:
-  - npm
-args:
-  - run
-  - dev
 
 labels:
   app: demo
