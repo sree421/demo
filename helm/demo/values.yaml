@@ -1,0 +1,145 @@
+# Default values for demo.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 3
+metadata:
+  isProd: true
+  tier: prod
+  environment: prod
+  maintainer: elastisys
+
+domain:
+  tld: com
+  name: elastisys
+  fqdn: "{{ .Chart.Name }}{{ if ne .Values.metadata.isProd true }}-{{- .Values.metadata.environment -}} {{ end }}.{{ .Values.domain.name }}.{{ .Values.domain.tld }}"
+  wildcard: "*.{{ .Values.domain.name }}.{{ .Values.domain.tld }}"
+
+image:
+  registry: accont-id.dkr.ecr.{{ .Values.config.region }}.amazonaws.com
+  repository: demo
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+command:
+  - npm
+args:
+  - run
+  - dev
+
+labels:
+  app: demo
+  public: "true"
+  track: weekly
+  release: stable  
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+
+
+
+ports:
+  targetPort: 8080
+  name: "{{ .Chart.Name }}-port"
+  protocol: TCP
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  failureThreshold: 8
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 3
+  failureThreshold: 10
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  annotations:
+    # nginx.org/hsts-behind-proxy: "true"
+    # nginx.org/hsts-include-subdomains: "true"
+    # nginx.org/hsts-max-age: "31536000"
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: 100M
+    nginx.ingress.kubernetes.io/client-max-body-size: 100M
+    # nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    # nginx.ingress.kubernetes.io/secure-backends: "true"
+    # nginx.ingress.kubernetes.io/enable-cors: "true"
+    # nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, DELETE, GET, POST, OPTIONS"
+  hosts:
+    - host: "{{ tpl .Values.domain.fqdn . }}"
+      paths:
+      - path: /
+        backend:
+          serviceName: "demo"
+          servicePort: 80
+  tls:
+   - secretName: demo-tls
+     hosts:
+       - "{{ tpl .Values.domain.wildcard . }}"
+       - "{{ tpl .Values.domain.fqdn . }}"
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector:
+  group: "{{ .Values.metadata.tier }}"
+
+tolerations:
+  - key: "{{ .Values.metadata.tier }}"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+          - key: group
+            operator: In
+            values:
+              - "{{ .Values.metadata.tier }}"
+
+antiAffinity: {}
+
+env:
+  configMaps:
+    APP_NAME: "demo"
+    APP_DEBUG: "true"
+    APP_ENV: "prod"
+    NODE_ENV: "prod"
+    APP_URL: "http://{{ tpl .Values.domain.fqdn . }}"
+    
+    DB_HOSTNAME: "demo.mongodb.net"
+    DB_USERNAME: "demo"
+    DB_DATABASE: "demo"
+    COOKIE_DOMAIN: "localhost"
+    SES_SOURCE_EMAIL: "aisupport@mintmesh.com"
+    AWS_DEFAULT_REGION: "us-west-2"
+  secrets:
+    DB_PASSWORD: ""

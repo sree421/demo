@@ -1,0 +1,21 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  annotations:
+  name: demo-prod
+  namespace: prod
+spec:
+  gateways:
+  - prod/istio-gateway-prod
+  hosts:
+  - demo.elastisys.com
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: demo.prod.svc.cluster.local
+        port:
+          number: 80
+
